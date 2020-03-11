@@ -140,8 +140,10 @@ ncclResult_t p2pSendSetup(struct ncclTopoSystem* topo, struct ncclTopoGraph* gra
     return ncclInternalError;
   }
   if (linktype != HSA_AMD_LINK_INFO_TYPE_XGMI) {
+    hipDeviceProp_t props;
+    CUDACHECK(hipGetDeviceProperties(&props, peerInfo->cudaDev));
     CUDACHECK(hipDeviceGetAttribute((int*)&resources->next_hdp_reg, hipDeviceAttributeHdpMemFlushCntl,peerInfo->cudaDev));
-    TRACE(NCCL_INIT|NCCL_P2P,"Ring %02d : %d -> %d HDP %p", channelId, myInfo->rank, peerInfo->rank, resources->next_hdp_reg);
+    TRACE(NCCL_INIT|NCCL_P2P,"Ring %02d : %d -> %d (gcnArch %d) HDP %p", channelId, myInfo->rank, peerInfo->rank, props.gcnArch, resources->next_hdp_reg);
   }
 
   struct p2pConnectInfo info;
