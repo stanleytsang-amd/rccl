@@ -10,9 +10,6 @@ namespace CorrectnessTests
 {
     TEST_P(ReduceScatterCorrectnessTest, Correctness)
     {
-        if (numDevices > numDevicesAvailable) return;
-        if (numElements % numDevices != 0) return;
-
         // Prepare input / output / expected results
         Dataset dataset;
         dataset.Initialize(numDevices, numElements, dataType, inPlace);

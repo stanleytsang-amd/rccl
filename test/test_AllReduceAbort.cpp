@@ -122,6 +122,7 @@ namespace CorrectnessTests
         }
 
         HIPCHECK(hipHostFree(fake_opCount));
+        HIPCHECK(hipHostFree(fake_head));
         HIPCHECK(hipStreamDestroy(stream));
         dataset.Release();
     }

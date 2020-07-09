@@ -38,7 +38,7 @@ if(BUILD_TESTS)
   # ${CMAKE_CURRENT_BINARY_DIR}/googletest-build EXCLUDE_FROM_ALL)
 
   # Collect source files for tests
-  set(TEST_SOURCES
+  set(TEST_SOURCES_SINGLE_PROCESS
     test_AllGather.cpp
     test_AllReduce.cpp
     test_Broadcast.cpp
@@ -53,10 +53,29 @@ if(BUILD_TESTS)
     test_AllToAll.cpp
   )
 
-  add_executable(UnitTests ${TEST_SOURCES})
-  target_include_directories(UnitTests PRIVATE /opt/rocm)
-  target_link_libraries(UnitTests PRIVATE gtest_main PRIVATE rccl)
-  install(TARGETS UnitTests RUNTIME DESTINATION test)
+  set(TEST_SOURCES_MULTI_PROCESS
+    test_AllGatherMultiProcess.cpp
+    test_AllReduceMultiProcess.cpp
+    test_AllReduceAbortMultiProcess.cpp
+    test_AllToAllMultiProcess.cpp
+    test_BroadcastMultiProcess.cpp
+    test_BroadcastAbortMultiProcess.cpp
+    test_CombinedCallsMultiProcess.cpp
+    test_GatherMultiProcess.cpp
+    test_GroupCallsMultiProcess.cpp
+    test_ReduceMultiProcess.cpp
+    test_ReduceScatterMultiProcess.cpp
+    test_ScatterMultiProcess.cpp
+  )
+
+  add_executable(UnitTestsSingleProcess ${TEST_SOURCES_SINGLE_PROCESS})
+  add_executable(UnitTestsMultiProcess ${TEST_SOURCES_MULTI_PROCESS})
+  target_include_directories(UnitTestsSingleProcess PRIVATE /opt/rocm)
+  target_link_libraries(UnitTestsSingleProcess PRIVATE gtest_main PRIVATE rccl)
+  install(TARGETS UnitTestsSingleProcess RUNTIME DESTINATION test)
+  target_include_directories(UnitTestsMultiProcess PRIVATE /opt/rocm)
+  target_link_libraries(UnitTestsMultiProcess PRIVATE gtest_main PRIVATE rccl PRIVATE rt)
+  install(TARGETS UnitTestsMultiProcess RUNTIME DESTINATION test)
 
   # HCC adds /opt/rocm/lib as RPATH, even though the install process is supposed to
   # remove RPATH.  As a work-around, set the correct RPATH for the unit test executable
