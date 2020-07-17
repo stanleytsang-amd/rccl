@@ -33,18 +33,16 @@ namespace CorrectnessTests
             {
                 pid3 = fork();
             }
-            fflush(stdout);
-
             if ((pid2 > 0 && pid3 == 0 && numDevices == 2)  || (pid2 > 0 && pid3 > 0 && numDevices > 2))
             {
                 // Process 0
                 TestBroadcastAbort(0, *dataset, done, *remaining, *ncclAsyncErr);
-                exit(0);
             }
-            else if (pid2 == 0 && pid3 == 0)
+            else if ((pid2 == 0 && pid3 == 0 && numDevices == 2) || (pid2 == 0 && pid3 > 0 && numDevices > 2))
             {
                 // Process 1
                 TestBroadcastAbort(1, *dataset, done, *remaining, *ncclAsyncErr);
+                if (numDevices > 2) waitpid(-1, NULL, 0);
                 exit(0);
             }
             else if (pid2 > 0 && pid3 == 0 && numDevices > 2)
@@ -53,7 +51,7 @@ namespace CorrectnessTests
                 TestBroadcastAbort(2, *dataset, done, *remaining, *ncclAsyncErr);
                 exit(0);
             }
-            else if (pid2 == 0 && pid3 > 0 && numDevices == 4)
+            else if (pid2 == 0 && pid3 == 0 && numDevices == 4)
             {
                 // Process 3 (available when numDevices == 4)
                 TestBroadcastAbort(3, *dataset, done, *remaining, *ncclAsyncErr);
@@ -64,6 +62,7 @@ namespace CorrectnessTests
                 exit(0);
             }
             waitpid(-1, NULL, 0);
+            exit(0);
         }
         waitpid(-1, NULL, 0);
     }
@@ -81,5 +80,6 @@ namespace CorrectnessTests
                                 testing::Values(2, 4),
                                 // In-place or not
                                 testing::Values(false),
-                                testing::Values("")));
+                                testing::Values("")),
+                            CorrectnessTest::PrintToStringParamName());
 } // namespace

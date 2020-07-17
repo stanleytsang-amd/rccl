@@ -6,6 +6,7 @@
 #ifndef CORRECTNESSTEST_HPP
 #define CORRECTNESSTEST_HPP
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <errno.h>
@@ -404,6 +405,51 @@ namespace CorrectnessTests
     // - Each test is instantiated with a different TestTuple
     class CorrectnessTest : public testing::TestWithParam<TestTuple>
     {
+    public:
+        struct PrintToStringParamName
+        {
+            std::string operator()(const testing::TestParamInfo<CorrectnessTest::ParamType>& info)
+            {
+                std::string name;
+
+                name += opStrings[std::get<0>(info.param)] + "_";
+                name += dataTypeStrings[std::get<1>(info.param)] + "_";
+                name += std::to_string(std::get<2>(info.param)) + "elements_";
+                name += std::to_string(std::get<3>(info.param)) + "devices_";
+                name += std::get<4>(info.param) == true ? "inplace_" : "outofplace_";
+                std::string envVars = std::string(std::get<5>(info.param));
+                std::replace(envVars.begin(), envVars.end(), '=', '_');
+                name += envVars;
+
+                return name;
+            }
+
+            std::map<ncclRedOp_t, std::string> opStrings
+            {
+                {ncclSum,  "sum"},
+                {ncclProd, "prod"},
+                {ncclMax,  "max"},
+                {ncclMin,  "min"}
+            };
+
+            std::map<ncclDataType_t, std::string> dataTypeStrings
+            {
+                {ncclInt8,     "int8"},
+                {ncclChar,     "char"},
+                {ncclUint8,    "uint8"},
+                {ncclInt32,    "int32"},
+                {ncclInt,      "int"},
+                {ncclUint32,   "uint32"},
+                {ncclInt64,    "int64"},
+                {ncclUint64,   "uint64"},
+                {ncclFloat16,  "float16"},
+                {ncclHalf,     "half"},
+                {ncclFloat32,  "float32"},
+                {ncclFloat64,  "float64"},
+                {ncclDouble,   "double"},
+                {ncclBfloat16, "bfloat16"}
+            };
+        };
     protected:
         // This code is called per test-tuple
         void SetUp() override
@@ -664,12 +710,6 @@ namespace CorrectnessTests
     protected:
         void SetUp() override
         {
-            // Check for fine-grained env variable (otherwise will hang)
-            if (!getenv("HSA_FORCE_FINE_GRAIN_PCIE"))
-            {
-                printf("Must set HSA_FORCE_FINE_GRAIN_PCIE=1 prior to execution\n");
-                exit(0);
-            }
             // Check for NCCL_COMM_ID env variable (otherwise will not init)
             if (!getenv("NCCL_COMM_ID"))
             {
@@ -726,12 +766,6 @@ namespace CorrectnessTests
 
         void SetUpPerProcessHelper(int rank, ncclComm_t& comm, hipStream_t& stream)
         {
-            // Check for fine-grained env variable (otherwise will hang)
-            if (!getenv("HSA_FORCE_FINE_GRAIN_PCIE"))
-            {
-                printf("Must set HSA_FORCE_FINE_GRAIN_PCIE=1 prior to execution\n");
-                exit(0);
-            }
             // Check for NCCL_COMM_ID env variable (otherwise will not init)
             if (!getenv("NCCL_COMM_ID"))
             {
@@ -928,6 +962,8 @@ namespace CorrectnessTests
             ASSERT_EQ(isMatch, true);
         }
     };
+
+    std::string GenerateTestNameString(testing::TestParamInfo<MultiProcessCorrectnessTest::ParamType>& info);
 }
 
 #endif

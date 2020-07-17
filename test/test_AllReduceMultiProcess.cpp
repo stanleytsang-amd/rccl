@@ -27,17 +27,16 @@ namespace CorrectnessTests
             {
                 pid3 = fork();
             }
-
             if ((pid2 > 0 && pid3 == 0 && numDevices == 2)  || (pid2 > 0 && pid3 > 0 && numDevices > 2))
             {
                 // Process 0
                 TestAllReduce(0, *dataset);
-                exit(0);
             }
-            else if (pid2 == 0 && pid3 == 0)
+            else if ((pid2 == 0 && pid3 == 0 && numDevices == 2) || (pid2 == 0 && pid3 > 0 && numDevices > 2))
             {
                 // Process 1
                 TestAllReduce(1, *dataset);
+                if (numDevices > 2) waitpid(-1, NULL, 0);
                 exit(0);
             }
             else if (pid2 > 0 && pid3 == 0 && numDevices > 2)
@@ -46,7 +45,7 @@ namespace CorrectnessTests
                 TestAllReduce(2, *dataset);
                 exit(0);
             }
-            else if (pid2 == 0 && pid3 > 0 && numDevices == 4)
+            else if (pid2 == 0 && pid3 == 0 && numDevices == 4)
             {
                 // Process 3 (available when numDevices == 4)
                 TestAllReduce(3, *dataset);
@@ -57,6 +56,7 @@ namespace CorrectnessTests
                 exit(0);
             }
             waitpid(-1, NULL, 0);
+            exit(0);
         }
         waitpid(-1, NULL, 0);
     }
@@ -83,5 +83,6 @@ namespace CorrectnessTests
                                 testing::Values(2,3,4),
                                 // In-place or not
                                 testing::Values(false, true),
-                                testing::Values("")));
+                                testing::Values("")),
+                            CorrectnessTest::PrintToStringParamName());
 } // namespace

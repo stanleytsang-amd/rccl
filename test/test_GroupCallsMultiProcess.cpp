@@ -39,8 +39,6 @@ namespace CorrectnessTests
             {
                 pid3 = fork();
             }
-            fflush(stdout);
-
             if ((pid2 > 0 && pid3 == 0 && numDevices == 4)  || (pid2 > 0 && pid3 > 0 && numDevices > 4))
             {
                 // Process 0
@@ -49,9 +47,8 @@ namespace CorrectnessTests
                 ranks.push_back(1);
 
                 TestGroupCalls(0, ranks, datasets, ncclFuncs);
-                exit(0);
             }
-            else if (pid2 == 0 && pid3 == 0)
+            else if ((pid2 == 0 && pid3 == 0 && numDevices == 4) || (pid2 == 0 && pid3 > 0 && numDevices > 4))
             {
                 // Process 1
                 std::vector<int> ranks;
@@ -59,11 +56,12 @@ namespace CorrectnessTests
                 ranks.push_back(3);
 
                 TestGroupCalls(1, ranks, datasets, ncclFuncs);
+                if (numDevices > 2) waitpid(-1, NULL, 0);
                 exit(0);
             }
             else if (pid2 > 0 && pid3 == 0 && numDevices == 8)
             {
-                // Process 2 (available when numDevices == 8)
+                // Process 2 (available when numDevices > 2)
                 std::vector<int> ranks;
                 ranks.push_back(4);
                 ranks.push_back(5);
@@ -71,9 +69,9 @@ namespace CorrectnessTests
                 TestGroupCalls(2, ranks, datasets, ncclFuncs);
                 exit(0);
             }
-            else if (pid2 == 0 && pid3 > 0 && numDevices == 8)
+            else if (pid2 == 0 && pid3 == 0 && numDevices == 8)
             {
-                // Process 3 (available when numDevices == 8)
+                // Process 3 (available when numDevices == 4)
                 std::vector<int> ranks;
                 ranks.push_back(6);
                 ranks.push_back(7);
@@ -86,6 +84,7 @@ namespace CorrectnessTests
                 exit(0);
             }
             waitpid(-1, NULL, 0);
+            exit(0);
         }
         waitpid(-1, NULL, 0);
     }
@@ -112,5 +111,6 @@ namespace CorrectnessTests
                                 testing::Values(4),
                                 // In-place or not
                                 testing::Values(false, true),
-                                testing::Values("")));
+                                testing::Values("")),
+                            CorrectnessTest::PrintToStringParamName());
 } // namespace
