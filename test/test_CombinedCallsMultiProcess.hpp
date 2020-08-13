@@ -22,6 +22,8 @@ namespace CorrectnessTests
     public:
         void TestCombinedCalls(int rank, std::vector<Dataset*>& datasets, std::vector<ncclFunc_t> const& funcs)
         {
+            //printf("rank %d in test\n", rank);
+            //fflush(stdout);
             SetUpPerProcess(rank, funcs, comms[rank], streams[rank], datasets);
 
             if (numDevices > numDevicesAvailable) return;

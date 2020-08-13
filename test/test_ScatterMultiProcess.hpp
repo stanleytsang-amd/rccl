@@ -25,6 +25,8 @@ namespace CorrectnessTests
 
         void TestScatter(int rank, Dataset& dataset)
         {
+            //printf("rank %d in test\n", rank);
+            //fflush(stdout);
             // Prepare input / output / expected results
             SetUpPerProcess(rank, ncclCollScatter, comms[rank], streams[rank], dataset);
 

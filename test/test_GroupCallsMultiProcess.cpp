@@ -35,33 +35,59 @@ namespace CorrectnessTests
         if (pid1 == 0)
         {
             pid2 = fork();
+            if (pid2 > 0)
+            {
+                printf("pid2: %d\n", pid2);
+                fflush(stdout);
+            }
             if (numDevices > 4)
             {
                 pid3 = fork();
+                if (pid3 > 0)
+                {
+                    printf("pid3: %d\n", pid3);
+                    fflush(stdout);
+                }
             }
             if ((pid2 > 0 && pid3 == 0 && numDevices == 4)  || (pid2 > 0 && pid3 > 0 && numDevices > 4))
             {
                 // Process 0
+                printf("Process 0 in\n");
+                fflush(stdout);
                 std::vector<int> ranks;
                 ranks.push_back(0);
                 ranks.push_back(1);
 
                 TestGroupCalls(0, ranks, datasets, ncclFuncs);
+                if (pid3 > 0)
+                {
+                    waitpid(pid3, NULL, 0);
+                    printf("pid3 close: %d\n", pid3);
+                    fflush(stdout);
+                }
             }
             else if ((pid2 == 0 && pid3 == 0 && numDevices == 4) || (pid2 == 0 && pid3 > 0 && numDevices > 4))
             {
                 // Process 1
+                printf("Process 1 in\n");
+                fflush(stdout);
                 std::vector<int> ranks;
                 ranks.push_back(2);
                 ranks.push_back(3);
-
                 TestGroupCalls(1, ranks, datasets, ncclFuncs);
-                if (numDevices > 2) waitpid(-1, NULL, 0);
+                if (pid3 > 0)
+                {
+                    waitpid(pid3, NULL, 0);
+                    printf("pid3 close: %d\n", pid3);
+                    fflush(stdout);
+                }
                 exit(0);
             }
             else if (pid2 > 0 && pid3 == 0 && numDevices == 8)
             {
                 // Process 2 (available when numDevices > 2)
+                printf("Process 2 in\n");
+                fflush(stdout);
                 std::vector<int> ranks;
                 ranks.push_back(4);
                 ranks.push_back(5);
@@ -72,6 +98,8 @@ namespace CorrectnessTests
             else if (pid2 == 0 && pid3 == 0 && numDevices == 8)
             {
                 // Process 3 (available when numDevices == 4)
+                printf("Process 3 in\n");
+                fflush(stdout);
                 std::vector<int> ranks;
                 ranks.push_back(6);
                 ranks.push_back(7);
@@ -83,10 +111,15 @@ namespace CorrectnessTests
             {
                 exit(0);
             }
-            waitpid(-1, NULL, 0);
+            waitpid(pid2, NULL, 0);
+            printf("pid2 close: %d\n", pid2);
+            fflush(stdout);
             exit(0);
         }
-        waitpid(-1, NULL, 0);
+        printf("pid1: %d\n", pid1);
+        waitpid(pid1, NULL, 0);
+        printf("pid1 close: %d\n", pid1);
+        fflush(stdout);
     }
 
     INSTANTIATE_TEST_CASE_P(GroupCallsMultiProcessCorrectnessSweep,

@@ -32,6 +32,8 @@ namespace CorrectnessTests
     public:
         void TestBroadcastAbort(int rank, Dataset& dataset, int*& done, int& remaining, ncclResult_t& ncclAsyncErr)
         {
+            //printf("rank %d in test\n", rank);
+            //fflush(stdout);
             SetUpPerProcess(rank, ncclCollBroadcast, comms[rank], streams[rank], dataset);
 
             if (numDevices > numDevicesAvailable) return;

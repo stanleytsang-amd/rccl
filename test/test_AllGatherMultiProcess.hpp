@@ -34,6 +34,8 @@ namespace CorrectnessTests
 
         void TestAllGather(int rank, Dataset& dataset)
         {
+            //printf("rank %d in test\n", rank);
+            //fflush(stdout);
             // Prepare input / output / expected results
             SetUpPerProcess(rank, ncclCollAllGather, comms[rank], streams[rank], dataset);
 

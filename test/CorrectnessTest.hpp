@@ -766,6 +766,7 @@ namespace CorrectnessTests
 
         void SetUpPerProcessHelper(int rank, ncclComm_t& comm, hipStream_t& stream)
         {
+            printf("Rank %d in setup: %d\n", rank, getpid());
             // Check for NCCL_COMM_ID env variable (otherwise will not init)
             if (!getenv("NCCL_COMM_ID"))
             {
@@ -788,16 +789,16 @@ namespace CorrectnessTests
                 numDevicesAvailable = -1;
                 return;
             }
-
+            printf("Rank %d passed setup check\n", rank);
             HIP_CALL(hipSetDevice(rank));
             HIP_CALL(hipStreamCreate(&stream));
-
+            printf("Rank %d passed hip calls\n", rank);
             ncclUniqueId id;
             NCCL_CALL(ncclGetUniqueId(&id));
-
+            printf("Rank %d got id\n", rank);
             ncclResult_t res;
             res = ncclCommInitRank(&comm, numDevices, id, rank); // change to local comm and stream per process
-
+            printf("Rank %d init rnak\n", rank);
             if (res != ncclSuccess)
             {
                 printf("Test failure:%s %d '%s' numRanks:%d\n", __FILE__,__LINE__,ncclGetErrorString(res), numDevices);

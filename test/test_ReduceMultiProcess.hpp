@@ -81,6 +81,8 @@ namespace CorrectnessTests
 
         void TestReduce(int rank, Dataset& dataset)
         {
+            //printf("rank %d in test\n", rank);
+            //fflush(stdout);
             SetUpPerProcess(rank, ncclCollReduce, comms[rank], streams[rank], dataset);
 
             if (numDevices > numDevicesAvailable) return;

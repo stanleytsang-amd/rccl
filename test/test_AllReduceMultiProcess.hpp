@@ -76,6 +76,8 @@ namespace CorrectnessTests
 
         void TestAllReduce(int rank, Dataset& dataset)
         {
+            //printf("rank %d in test\n", rank);
+            //fflush(stdout);
             SetUpPerProcess(rank, ncclCollAllReduce, comms[rank], streams[rank], dataset);
 
             if (numDevices > numDevicesAvailable) return;

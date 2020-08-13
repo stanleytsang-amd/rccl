@@ -33,6 +33,8 @@ namespace CorrectnessTests
     public:
         void TestAllReduceAbort(int rank, Dataset& dataset, int*& done, int& remaining, ncclResult_t& ncclAsyncErr)
         {
+            //printf("rank %d in test\n", rank);
+            //fflush(stdout);
             SetUpPerProcess(rank, ncclCollAllReduce, comms[rank], streams[rank], dataset);
 
             if (numDevices > numDevicesAvailable) return;
