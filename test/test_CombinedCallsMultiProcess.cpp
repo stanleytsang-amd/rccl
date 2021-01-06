@@ -36,19 +36,9 @@ namespace CorrectnessTests
         if (pid1 == 0)
         {
             pid2 = fork();
-            if (pid2 > 0)
-            {
-                printf("pid2: %d\n", pid2);
-                fflush(stdout);
-            }
             if (numDevices > 2)
             {
                 pid3 = fork();
-                if (pid3 > 0)
-                {
-                    printf("pid3: %d\n", pid3);
-                    fflush(stdout);
-                }
             }
             if ((pid2 > 0 && pid3 == 0 && numDevices == 2)  || (pid2 > 0 && pid3 > 0 && numDevices > 2))
             {
@@ -57,8 +47,6 @@ namespace CorrectnessTests
                 if (pid3 > 0)
                 {
                     waitpid(pid3, NULL, 0);
-                    printf("pid3 close: %d\n", pid3);
-                    fflush(stdout);
                 }
             }
             else if ((pid2 == 0 && pid3 == 0 && numDevices == 2) || (pid2 == 0 && pid3 > 0 && numDevices > 2))
@@ -68,8 +56,6 @@ namespace CorrectnessTests
                 if (numDevices > 2)
                 {
                     waitpid(pid3, NULL, 0);
-                    printf("pid3 close: %d\n", pid3);
-                    fflush(stdout);
                 }
                 exit(0);
             }
@@ -90,14 +76,9 @@ namespace CorrectnessTests
                 exit(0);
             }
             waitpid(pid2, NULL, 0);
-            printf("pid2 close: %d\n", pid2);
-            fflush(stdout);
             exit(0);
         }
-        printf("pid1: %d\n", pid1);
         waitpid(pid1, NULL, 0);
-        printf("pid1 close: %d\n", pid1);
-        fflush(stdout);
     }
 
     INSTANTIATE_TEST_CASE_P(CombinedCallsMultiProcessCorrectnessSweep,

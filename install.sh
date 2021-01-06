@@ -25,7 +25,7 @@ build_package=false
 install_prefix=$default_path
 build_tests=false
 run_tests=false
-build_release=false
+build_release=true
 install_library=false
 build_hip_clang=true
 install_dependencies=false
@@ -111,11 +111,11 @@ check_exit_code( )
 # prep
 # #################################################
 # ensure a clean build environment
-#if [[ "${build_release}" == true ]]; then
-#    rm -rf build/release
-#else
-#    rm -rf build/debug
-#fi
+if [[ "${build_release}" == true ]]; then
+    rm -rf build/release
+else
+    rm -rf build/debug
+fi
 
 
 # Create and go to the build directory.
