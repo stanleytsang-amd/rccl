@@ -704,11 +704,24 @@ namespace CorrectnessTests
     protected:
         void SetUp() override
         {
-            // Check for NCCL_COMM_ID env variable (otherwise will not init)
+            // Check for NCCL_COMM_ID env variable, if not already set then set it now
             if (!getenv("NCCL_COMM_ID"))
             {
-                printf("Must set NCCL_COMM_ID prior to execution\n");
-                exit(0);
+                char hostName[HOST_NAME_MAX];
+                int ret = gethostname(hostName, HOST_NAME_MAX);
+                if (ret != 0)
+                {
+                    printf("Failed to get system hostname, required for executing multi-process. Aborting.\n");
+                    exit(0);
+                }
+                std::string ncclCommId(hostName);
+                ncclCommId.append(":55512");
+                ret = setenv("NCCL_COMM_ID", ncclCommId.c_str(), 1);
+                if (ret != 0)
+                {
+                    printf("Failed to set NCCL_COMM_ID, required for executing multi-process. Aborting.\n");
+                    exit(0);
+                }
             }
 
             // Make the test tuple parameters accessible
