@@ -40,14 +40,15 @@ THE SOFTWARE.
 #include <iostream>
 #include <sstream>
 #include <thread>
+#include <unistd.h>
 
 cliqueDevicePtrs_t CliqueManager::m_staticCliquePtrs[NCCL_MAX_OPS]  = {};
 int*               CliqueManager::m_staticGpuBarrierMem             = NULL;
 
 // Define some environment variables that affect clique-based kernels
 RCCL_PARAM(EnableClique, "ENABLE_CLIQUE", 0);                                  // Opt-in environment variable for clique-based kernels
-RCCL_PARAM(AllReduceCliqueByteLimit, "CLIQUE_ALLREDUCE_BYTE_LIMIT", 2097152);  // Max number of bytes to use clique-based kernels for all reduce
-RCCL_PARAM(AllReduceNumChannels,     "CLIQUE_ALLREDUCE_NCHANNELS", 4);         // Number of channels to use for all-reduce
+RCCL_PARAM(AllReduceCliqueByteLimit, "CLIQUE_ALLREDUCE_BYTE_LIMIT", 16777216); // Max number of bytes to use clique-based kernels for all reduce
+RCCL_PARAM(AllReduceNumChannels,     "CLIQUE_ALLREDUCE_NCHANNELS", 0);         // Number of channels to use for all-reduce. (0 for auto-select)
 RCCL_PARAM(CliqueDebug, "CLIQUE_DEBUG", 0);                                    // Emit debug messages
 
 CliqueManager::CliqueManager(int          const  rank,
@@ -321,7 +322,22 @@ ncclResult_t CliqueManager::GetNumChannelsToUse(ncclFunc_t const coll,
   *numChannelstoUse = 1;
 
   if (coll == ncclCollAllReduce) {
-    *numChannelstoUse = std::min((int)rcclParamAllReduceNumChannels(), totalNumChannels);
+    if (rcclParamAllReduceNumChannels() == 0)
+    {
+      // NOTE: These are currently based on collected data and not necessarily ideal for all hardware
+      int numChannels;
+      if (totalBytes <= 65536) numChannels = 1;
+      else if (totalBytes <= 262144) numChannels = 2;
+      else if (totalBytes <= 524288) numChannels = 4;
+      else if (totalBytes <= 2097152) numChannels = 8;
+      else numChannels = 11;
+
+      *numChannelstoUse = std::min(numChannels, totalNumChannels);
+    }
+    else
+    {
+      *numChannelstoUse = std::min((int)rcclParamAllReduceNumChannels(), totalNumChannels);
+    }
   }
 
   return ncclSuccess;
@@ -343,9 +359,6 @@ ncclResult_t CliqueManager::SetCliqueCollectiveArgs(CollectiveArgs* args)
   int opIndex = args->opCount % NCCL_MAX_OPS;
   args->clique.ptrs = &m_pinnedCliquePtrs[opIndex];
   args->clique.verbose = rcclParamCliqueDebug();
-
-  // Determine number of channels to use for this collective
-  args->clique.nChannels = rcclParamAllReduceNumChannels();
 
   return ncclSuccess;
 }
@@ -514,28 +527,36 @@ void CliqueManager::WaitForBarrier()
 
 ncclResult_t CliqueManager::BootstrapRootInit(int pid, unsigned long hash)
 {
-  for (auto it = CliqueShmNames.begin(); it != CliqueShmNames.end(); it++)
+  if (rcclParamEnableClique())
   {
-    int msgid, fd;
-    std::string msgQueueName = "/tmp/" + it->second + std::to_string(hash) + "_" + std::to_string(pid);
-    SYSCHECKVAL(open(msgQueueName.c_str(), O_CREAT | O_RDWR, 0606), "open", fd);
-    NCCLCHECK(MsgQueueGetId(msgQueueName, hash, true, msgid));
-    SYSCHECK(close(fd), "close");
+      for (auto it = CliqueShmNames.begin(); it != CliqueShmNames.end(); it++)
+      {
+        int msgid, fd;
+        std::string msgQueueName = "/tmp/" + it->second + std::to_string(hash) + "_" + std::to_string(pid);
+        SYSCHECKVAL(open(msgQueueName.c_str(), O_CREAT | O_RDWR, 0606), "open", fd);
+        NCCLCHECK(MsgQueueGetId(msgQueueName, hash, true, msgid));
+        SYSCHECK(unlink(msgQueueName.c_str()), "unlink");
+        SYSCHECK(close(fd), "close");
+      }
+
+      std::string shmDir = "/dev/shm/";
+
+      for (auto it = CliqueShmNames.begin(); it != CliqueShmNames.end(); it++)
+      {
+        struct stat fileStatus;
+        std::string shmFileName = it->second + std::to_string(hash) + "_" + std::to_string(pid);
+        std::string shmFullPath = shmDir + shmFileName;
+
+        // Check if shm file already exists; if so, unlink it
+        if (stat(shmFullPath.c_str(), &fileStatus) == 0)
+        {
+          NCCLCHECK(shmUnlink(shmFileName.c_str()));
+        }
+      }
   }
-
-  std::string shmDir = "/dev/shm/";
-
-  for (auto it = CliqueShmNames.begin(); it != CliqueShmNames.end(); it++)
+  else
   {
-    struct stat fileStatus;
-    std::string shmFileName = it->second + std::to_string(hash) + "_" + std::to_string(pid);
-    std::string shmFullPath = shmDir + shmFileName;
-
-    // Check if shm file already exists; if so, unlink it
-    if (stat(shmFullPath.c_str(), &fileStatus) == 0)
-    {
-      NCCLCHECK(shmUnlink(shmFileName.c_str()));
-    }
+    INFO(NCCL_INIT, "Not performing bootstrap root for clique kernels as clique mode not enabled.");
   }
   return ncclSuccess;
 }
